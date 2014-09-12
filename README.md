@@ -1,6 +1,7 @@
 # Rake::Tilde
 
-Run rake tasks when files change. No changes necessary to your Rakefile.
+Run rake tasks when files change. No changes necessary to your Rakefile,
+just prepend your task name with ~ like: `$ rake ~build`
 
 ## Installation
 
