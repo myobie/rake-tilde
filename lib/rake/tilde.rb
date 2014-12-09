@@ -33,12 +33,21 @@ module Rake
       opts  = listen_path.fetch(:opts) {{}}
       blk   = listen_path[:blk]
 
-      task.invoke
+      begin
+        task.invoke
+      rescue
+        $stderr.puts "Task failed to run successfully"
+      end
 
       listener = Listen.to(paths, opts) do |modified, added, removed|
-        Rake::Task.tasks.each { |t| t.reenable }
-        task.invoke
-        blk.call(modified, added, removed) if blk
+        $stdout.puts "** File system changed"
+        begin
+          Rake::Task.tasks.each { |t| t.reenable }
+          task.invoke
+          blk.call(modified, added, removed) if blk
+        rescue
+          $stderr.puts "Task failed to run successfully"
+        end
       end
 
       listeners.push listener
