@@ -22,7 +22,7 @@ Or install it yourself as:
 ## Usage
 
 This gem monkeypatch's Rake to intercept any task that begins with ~. In
-that case thet task is run whenever any files in the project change.
+that case that task is run whenever any files in the project change.
 This is a basic wrapper around the [listen gem](https://github.com/guard/listen).
 
 More interesting things can be done by specifying folders, ignores, etc
@@ -43,6 +43,13 @@ Then run it like this:
 ```sh
 $ rake ~woo
 ```
+
+## Rails (or other fancy libraries)
+
+Some libraries really care about the names of the tasks from the
+original ARGV string during load. In that case, just prepend `require
+'rake/tilde'` to your Rakefile before anything else and it will rewrite
+all the task names before any other library can see them.
 
 ## Contributing
 
