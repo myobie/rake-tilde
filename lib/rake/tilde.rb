@@ -27,7 +27,7 @@ module Rake
 
     def run(task_name, *task_args)
       task        = Rake.application[task_name]
-      listen_path = paths.fetch(task_name) {{}}
+      listen_path = paths.fetch(task_name.intern) {{}}
       paths       = listen_path.fetch(:paths, listen_path.fetch(:path) { Dir.pwd })
       opts        = listen_path.fetch(:opts) {{}}
       blk         = listen_path[:blk]

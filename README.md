@@ -33,7 +33,7 @@ task :woo do
   puts "woo"
 end
 
-listen to: :woo, path: "/somewhere-else", ignore: /\.rb$/ do |modified, added, removed|
+listen to: :woo, path: "/somewhere-else", opts: { ignore: /\.rb$/ } do |modified, added, removed|
   puts "woooooo"
 end
 ```
