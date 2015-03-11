@@ -98,13 +98,12 @@ rule %r{^render/} => [render_to_src] do |t|
 end
 
 # compile depends on the expected ./site files, which will in turn depend
-# on the same named file in ./src
-
+# on the same named file in ./src because of the above rule
 task :compile => $site_files
 
 # Let's make a way to know the url of a file from it's absolute path
 def url(path)
-  root_dir = File.expand_path '../..', __FILE__
+  root_dir = File.expand_path '..', __FILE__
   root_regex = Regexp.new("^#{root_dir}/src/")
   path.gsub(root_regex, '/')
 end
