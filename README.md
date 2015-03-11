@@ -48,7 +48,8 @@ In this example, the four tasks will be run in order: clean, compile,
 publish, then notify. Then, rake-tilde will run both compile and publish
 after any changes. These two tasks will be run in parallel, not in
 sequence so keep that in mind. If that is a feature you would like then
-let me know.
+let me know, but for now just make one task that depends on the other
+two.
 
 More interesting things can be done by specifying folders, ignores, etc
 for tasks:
@@ -81,25 +82,23 @@ require 'json'
 # let's find all the files in ./src and copy them over to ./site
 # **************************************************************
 
-$src_files  = FileList['./src/**/*.*']
-$site_files = $src_files.pathmap('%{^src/,site/}p')
+$src_files = FileList['src/**/*.*']
 
-# make a lambda that can convert a filepath from render to src
-render_to_src = ->(name) { name.pathmap('%{^render/,src/}p') }
-
-# any file expected to be in ./site depends on the file with the same name in ./src
-# we create any missing file in ./site by just copying from the related file in ./src
-rule %r{^render/} => [render_to_src] do |t|
-  File.dirname(t.name).tap do |dir|
-    mkdir_p dir
-    cp t.source, dir
-    # do other transformations to these files here
+# for each file in ./src
+$src_files.each do |fn|
+  # make a rule that a file in ./site with the same name depends on it
+  file fn.pathmap('%{^src/,site/}p') => fn do
+    # we create the file in ./site by copying the file from ./src
+    File.dirname(t.name).tap do |dir|
+      mkdir_p dir
+      cp t.source, dir
+    end
   end
 end
 
 # compile depends on the expected ./site files, which will in turn depend
-# on the same named file in ./src because of the above rule
-task :compile => $site_files
+# on the same named file in ./src because of the above file rule
+task :compile => $src_files.pathmap('%{^src/,site/}p')
 
 # Let's make a way to know the url of a file from it's absolute path
 def url(path)
