@@ -43,8 +43,8 @@ module Rake
       listener = Listen.to(paths, opts) do |modified, added, removed|
         $stdout.puts "** File system changed"
         begin
-          Rake::Task.tasks.each { |t| t.reenable }
-          task.invoke(*task_args)
+          pid = spawn("rake #{task.name}")
+          Process.wait pid
           blk.call(modified, added, removed) if blk
         rescue StandardError => exception
           $stderr.puts "** Task failed to run successfully with tilde"
@@ -55,10 +55,23 @@ module Rake
       listeners.push listener
       listener.start
     end
+
+    def sleep_forever
+      begin
+        sleep
+      rescue Interrupt
+        puts
+      end
+    end
   end
 end
 
 module OverrideInvoke
+  def top_level
+    super
+    Rake::Tilde.sleep_forever if tilde?
+  end
+
   def invoke_task(task_string)
     task_string = task_string.gsub(/^\~/, '')
     task_name, args = parse_task_string(task_string)
@@ -72,6 +85,10 @@ module OverrideInvoke
 
   def tilde_tasks
     @__tilde_tasks ||= []
+  end
+
+  def tilde?
+    tilde_tasks.any?
   end
 end
 
@@ -92,12 +109,8 @@ def listen(**args, &blk)
   Rake::Tilde.listen(**args, &blk)
 end
 
-at_exit do
-  if Rake::Tilde.listening?
-    begin
-      sleep
-    rescue Interrupt
-      puts
-    end
+namespace :tilde do
+  task :sleep do
+    Rake::Tilde.sleep_forever unless Rake.application.tilde?
   end
 end
