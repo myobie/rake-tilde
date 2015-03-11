@@ -34,7 +34,7 @@ $ rake ~test
 The task is run once and then a listener is setup to watch for file
 changes on the current directory. Each successive run is done in it's
 own process, so global modifications during the rake task should not
-bleed over (look at your rails).
+bleed over (looking at your rails).
 
 If you invoke more than one ~ task, they are each run once, then listers
 are setup for each, then rake-tilde will wait for changes. It's even
