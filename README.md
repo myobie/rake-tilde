@@ -88,7 +88,7 @@ $site_files = $src_files.pathmap('%{^src/,site/}p')
 render_to_src = ->(name) { name.pathmap('%{^render/,src/}p') }
 
 # any file expected to be in ./site depends on the file with the same name in ./src
-# we create any missing file in ./site by reading and rendering the related file in ./src
+# we create any missing file in ./site by just copying from the related file in ./src
 rule %r{^render/} => [render_to_src] do |t|
   File.dirname(t.name).tap do |dir|
     mkdir_p dir
