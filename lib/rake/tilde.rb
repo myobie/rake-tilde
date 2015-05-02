@@ -2,6 +2,8 @@ require "rake"
 require "rake/tilde/version"
 
 require "listen"
+require "open4"
+require 'shellwords'
 
 module Rake
   module Tilde
@@ -32,28 +34,37 @@ module Rake
       opts        = listen_path.fetch(:opts) {{}}
       blk         = listen_path[:blk]
 
-      begin
-        task.invoke(*task_args)
-      rescue StandardError => exception
-        $stderr.puts "** Task failed to run successfully with tilde"
-        Rake.application.display_error_message(exception)
-        Rake.application.exit_because_of_exception(exception)
-      end
+      # run a first time
+      run_external task.name, blk
 
       listener = Listen.to(paths, opts) do |modified, added, removed|
         $stdout.puts "** File system changed"
-        begin
-          pid = spawn("rake #{task.name}")
-          Process.wait pid
-          blk.call(modified, added, removed) if blk
-        rescue StandardError => exception
-          $stderr.puts "** Task failed to run successfully with tilde"
-          Rake.application.display_error_message(exception)
-        end
+        run_external task.name, blk, modified: modified, added: added, removed: removed
       end
 
       listeners.push listener
       listener.start
+    end
+
+    def run_external(name, blk, modified: [], added: [], removed: [])
+      cmd = if File.exists?("bin/rake")
+              "bin/rake"
+            else
+              "rake"
+            end
+
+      stdout = Streamer.new($stdout)
+      stderr = Streamer.new($stderr)
+
+      status = Open4.spawn "#{cmd} #{name}", 'stdout' => stdout, 'stderr' => stderr, 'raise' => false, 'quiet' => true
+
+      if blk
+        arg = TaskResult.new(modified, added, removed, stdout.read.strip, stderr.read.strip, status)
+        blk.call(arg)
+      end
+    rescue StandardError => exception
+      $stderr.puts "** Task failed to run successfully with tilde"
+      Rake.application.display_error_message(exception)
     end
 
     def sleep_forever
@@ -62,6 +73,24 @@ module Rake
       rescue Interrupt
         puts
       end
+    end
+  end
+
+  TaskResult = Struct.new(:modified, :added, :removed, :stdout, :stderr, :status)
+
+  class Streamer
+    def initialize(putser)
+      @putser = putser
+      @content = ""
+    end
+
+    def <<(line)
+      @putser.puts line
+      @content << line
+    end
+
+    def read
+      @content.dup
     end
   end
 end
@@ -107,6 +136,16 @@ end
 
 def listen(**args, &blk)
   Rake::Tilde.listen(**args, &blk)
+end
+
+def notify(message:, title: nil, subtitle: nil, group: Dir.pwd)
+  cmd = "terminal-notifier"
+  cmd += " -message #{Shellwords.escape(message)}"
+  cmd += " -title #{Shellwords.escape(title)}" if title
+  cmd += " -subtitle #{Shellwords.escape(subtitle)}" if subtitle
+  cmd += " -group #{Shellwords.escape(group)}"
+
+  system cmd
 end
 
 namespace :tilde do
